@@ -131,5 +131,3 @@ The indexer's output file can be compared against a known-good index file using 
 Integration/system testing
 We write a script testing.sh that invokes the indexer (and indextest) several times, with a variety of command-line arguments. First, a sequence of invocations with erroneous arguments, testing each of the possible mistakes that can be made. Second, a run with valgrind over both indexer and indextest on a moderate-sized test case (such as toscrape at depth 1), to verify no memory errors or leaks. Third, runs of indexer over several CS50 pageDirectories (such as letters at depths 0, 1, 2; toscrape at depth 1; wikipedia at depth 1), followed by indextest on each resulting index file, and finally indexcmp to verify that the round-tripped index is equivalent to the original.
 Run that script with bash -v testing.sh so the output of indexer and indextest is intermixed with the commands used to invoke them. Verify correct behavior by studying the output, and by sampling the entries in the resulting index files.
-
-
