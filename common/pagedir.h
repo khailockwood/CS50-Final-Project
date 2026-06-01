@@ -51,4 +51,34 @@ bool pagedir_init(const char* pageDirectory);
  */
 void pagedir_save(const webpage_t* page, const char* pageDirectory, const int docID);
 
+/**************** pagedir_validate ****************/
+/*
+ * Verify that the given directory was produced by the Crawler.
+ *
+ * Caller provides:
+ *   the pathname of a directory (not NULL).
+ * Function does:
+ *   construct the pathname "pageDirectory/.crawler" and try to read it.
+ * Function returns:
+ *   true  if the .crawler marker file exists and is readable;
+ *   false if pageDirectory is NULL or the marker file is absent.
+ */
+bool pagedir_validate(const char* pageDirectory);
+
+/**************** pagedir_load ****************/
+/*
+ * Load a webpage from a file in a Crawler-produced pageDirectory.
+ *
+ * Caller provides:
+ *   the pathname of a valid pageDirectory (not NULL),
+ *   a positive integer docID naming the file to load.
+ * Function does:
+ *   open "pageDirectory/docID" and read the URL, depth, and HTML,
+ *   then build a webpage_t from them.
+ * Function returns:
+ *   a pointer to a new webpage_t (caller must later webpage_delete it);
+ *   NULL if pageDirectory is NULL or the file cannot be opened.
+ */
+webpage_t* pagedir_load(const char* pageDirectory, const int docID);
+
 #endif // __PAGEDIR_H

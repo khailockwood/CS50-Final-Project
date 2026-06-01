@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include "pagedir.h"
 #include "webpage.h"
+#include "file.h"
 #include "mem.h"
 
 /**************** file-local functions ****************/
@@ -72,6 +73,76 @@ pagedir_save(const webpage_t* page, const char* pageDirectory, const int docID)
 
   // close the file
   fclose(fp);
+}
+
+/**************** pagedir_validate ****************/
+/* see pagedir.h for description */
+bool
+pagedir_validate(const char* pageDirectory)
+{
+  // defensive check
+  if (pageDirectory == NULL) {
+    return false;
+  }
+
+  // construct the pathname for the .crawler file in that directory
+  char* pathname = pagedir_pathname(pageDirectory, ".crawler");
+
+  // open the file for reading. If error, clean up and return false
+  FILE* fp = fopen(pathname, "r");
+  free(pathname);
+  if (fp == NULL) {
+    return false;
+  }
+
+  // close file
+  fclose(fp);
+  return true;
+}
+
+/**************** pagedir_load ****************/
+/* see pagedir.h for description */
+webpage_t*
+pagedir_load(const char* pageDirectory, const int docID)
+{
+  // defensive check
+  if (pageDirectory == NULL) {
+    return NULL;
+  }
+
+  // construct the pathname "pageDirectory/docID"
+  char idstr[12]; // room for an int and '\0'
+  snprintf(idstr, sizeof(idstr), "%d", docID);
+  char* pathname = pagedir_pathname(pageDirectory, idstr);
+
+  // open file for reading
+  FILE* fp = fopen(pathname, "r");
+  free(pathname);
+  if (fp == NULL) {
+    return NULL;
+  }
+
+  // read the URL (line 1), depth (line 2), and HTML (rest of file)
+  char* url = file_readLine(fp);
+  char* depthStr = file_readLine(fp);
+  char* html = file_readFile(fp);
+  fclose(fp);
+
+  // a valid page file must have all three parts
+  if (url == NULL || depthStr == NULL || html == NULL) {
+    free(url);
+    free(depthStr);
+    free(html);
+    return NULL;
+  }
+
+  // convert the depth string to an integer
+  int depth = 0;
+  sscanf(depthStr, "%d", &depth);
+  free(depthStr);
+
+  // build a webpage_t; it takes ownership of url and html
+  return webpage_new(url, depth, html);
 }
 
 /**************** pagedir_pathname ****************/
