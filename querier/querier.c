@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include "index.h"
 #include "pagedir.h"
+#include "webpage.h"
 #include "word.h"
 #include "counters.h"
 #include "file.h"
@@ -418,16 +419,14 @@ static void rankAndPrint(counters_t* sum, const char* pageDirectory) {
       break;
     }
 
-    char* url = pagedir_loadURL(pageDirectory, best.docID);   // look up the URL
-
-    if (url == NULL) {
-      url = "(unknown URL)";
-    }
+    // we only want its URL
+    webpage_t* page = pagedir_load(pageDirectory, best.docID);
+    const char* url = (page != NULL) ? webpage_getURL(page) : "(unknown URL)";
 
     printf("score %3d doc %4d: %s\n", best.score, best.docID, url);
 
-    if (url != NULL) {      // pagedir_loadURL malloced it, so free it
-      free(url);
+    if (page != NULL) {     // webpage_delete frees the page and its URL together
+      webpage_delete(page);
     }
 
     counters_set(sum, best.docID, 0);   // zero it so next pass finds the next max
