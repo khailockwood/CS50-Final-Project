@@ -1,0 +1,8 @@
+# common/.gitignore
+#
+# Build products for this directory.
+# Note: *.o and *.a are already ignored by the top-level .gitignore;
+# they are listed here for clarity.
+
+common.a
+*.o
