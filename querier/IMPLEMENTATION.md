@@ -61,19 +61,22 @@ Before calling `index_load` we open the index file, count newlines with `file_nu
 Every static function in `querier.c`:
 
 ```c
-static void  prompt(void);
-static bool  cleanChars(char* line);
+static void prompt(void);
+static bool   cleanChars(const char* line);
 static char** tokenize(char* line, int* nwords);
-static void  printCleanQuery(char** words, int nwords);
-static bool  validateQuery(char** words, int nwords);
+static void printCleanQuery(char** words, int nwords);
+static bool   validateQuery(char** words, int nwords);
 static counters_t* processQuery(char** words, int nwords, index_t* index);
-static void  intersect(counters_t* product, counters_t* wordCounters);
-static void  intersectHelper(void* arg, const int key, const int count);
-static void  unionize(counters_t* sum, counters_t* product);
-static void  unionHelper(void* arg, const int key, const int count);
-static void  rankAndPrint(counters_t* sum, const char* pageDirectory);
-static void  findMax(void* arg, const int key, const int count);
-static void  countPositive(void* arg, const int key, const int count);
+static counters_t* copyCounters(counters_t* src);
+static void copyHelper(void* arg, const int key, const int count);
+static void intersect(counters_t* product, counters_t* wordCounters);
+static void intersectHelper(void* arg, const int key, const int count);
+static void unionize(counters_t* sum, counters_t* product);
+static void unionHelper(void* arg, const int key, const int count);
+static void rankAndPrint(counters_t* sum, const char* pageDirectory);
+static void findMax(void* arg, const int key, const int count);
+static void countPositive(void* arg, const int key, const int count);
+static bool   isOperator(const char* word);
 ```
 
 ## Per-function pseudo code
