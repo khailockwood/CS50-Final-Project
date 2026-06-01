@@ -1,0 +1,368 @@
+bash -v testing.sh
+#!/bin/bash
+#
+# testing.sh - test script for the TSE 'crawler'
+#
+# Usage: bash -v testing.sh
+#   (run via 'make test', which saves output with: make test &> testing.out)
+#
+# This script tests the crawler in three phases:
+#   1. erroneous command-line arguments (each should fail with non-zero exit)
+#   2. a valgrind run over a small crawl, to check for memory errors/leaks
+#   3. correct crawls over the test sites at increasing depths
+#
+
+# the seed URLs for the three test sites
+LETTERS=http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+TOSCRAPE=http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html
+WIKIPEDIA=http://cs50tse.cs.dartmouth.edu/tse/wikipedia/index.html
+
+# put all test output under ../data, fresh each run
+rm -rf ../data
+mkdir -p ../data
+
+#########################################################################
+# 1. erroneous arguments: each invocation must fail (non-zero exit status)
+#########################################################################
+
+# no arguments
+./crawler
+usage: ./crawler seedURL pageDirectory maxDepth
+
+# too few arguments
+./crawler $LETTERS
+usage: ./crawler seedURL pageDirectory maxDepth
+
+# too many arguments
+./crawler $LETTERS ../data 1 extra
+usage: ./crawler seedURL pageDirectory maxDepth
+
+# seedURL that cannot be normalized / is not a valid URL
+./crawler not-a-url ../data 1
+error: cannot normalize seedURL 'not-a-url'
+
+# seedURL that is external (not internal to the CS50 test server)
+./crawler http://www.example.com/ ../data 1
+error: seedURL 'http://www.example.com/' is not internal
+
+# pageDirectory that does not exist (cannot create .crawler there)
+./crawler $LETTERS ../data/does-not-exist 1
+error: cannot initialize pageDirectory '../data/does-not-exist'
+
+# maxDepth that is not an integer
+./crawler $LETTERS ../data notanumber
+error: maxDepth 'notanumber' is not an integer
+
+# maxDepth below range
+./crawler $LETTERS ../data -1
+error: maxDepth must be in range [0, 10]
+
+# maxDepth above range
+./crawler $LETTERS ../data 11
+error: maxDepth must be in range [0, 10]
+
+#########################################################################
+# 2. valgrind over a small crawl (letters at depth 2)
+#########################################################################
+
+mkdir -p ../data/letters-valgrind
+# run under valgrind where available (like the CS50 server);
+# skip gracefully on machines without it (macOS locally)
+if command -v valgrind &> /dev/null; then
+  valgrind --leak-check=full --show-leak-kinds=all \
+    ./crawler $LETTERS ../data/letters-valgrind 2
+else
+  echo "valgrind not available on this machine; skipping memory check"
+fi
+valgrind not available on this machine; skipping memory check
+
+#########################################################################
+# 3. correct crawls over the CS50 test sites
+#########################################################################
+
+# letters site at depths 0, 1, 2
+for depth in 0 1 2; do
+  mkdir -p ../data/letters-$depth
+  ./crawler $LETTERS ../data/letters-$depth $depth
+done
+ 0   Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 0   Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 0  Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 0   Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 0  Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 1   Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 1      Found: https://en.wikipedia.org/wiki/Algorithm
+ 1   IgnExtrn: https://en.wikipedia.org/wiki/Algorithm
+ 1      Found: http://cs50tse.cs.dartmouth.edu/tse/letters/B.html
+ 1      Added: http://cs50tse.cs.dartmouth.edu/tse/letters/B.html
+ 1      Found: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 1    IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 2     Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/B.html
+
+# toscrape site at depth 1 (depth 2+ takes a very long time)
+mkdir -p ../data/toscrape-1
+./crawler $TOSCRAPE ../data/toscrape-1 1
+ 0   Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html
+ 0  Scanning: http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books_1/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books_1/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/travel_2/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/travel_2/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/mystery_3/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/mystery_3/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/historical-fiction_4/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/historical-fiction_4/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/sequential-art_5/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/sequential-art_5/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/classics_6/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/classics_6/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/philosophy_7/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/philosophy_7/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/romance_8/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/romance_8/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/womens-fiction_9/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/womens-fiction_9/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/fiction_10/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/fiction_10/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/childrens_11/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/childrens_11/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/religion_12/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/religion_12/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/nonfiction_13/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/nonfiction_13/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/music_14/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/music_14/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/default_15/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/default_15/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/science-fiction_16/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/science-fiction_16/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/sports-and-games_17/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/sports-and-games_17/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/add-a-comment_18/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/add-a-comment_18/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/fantasy_19/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/fantasy_19/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/new-adult_20/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/new-adult_20/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/young-adult_21/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/young-adult_21/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/science_22/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/science_22/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/poetry_23/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/poetry_23/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/paranormal_24/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/paranormal_24/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/art_25/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/art_25/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/psychology_26/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/psychology_26/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/autobiography_27/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/autobiography_27/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/parenting_28/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/parenting_28/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/adult-fiction_29/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/adult-fiction_29/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/humor_30/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/humor_30/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/horror_31/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/horror_31/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/history_32/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/history_32/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/food-and-drink_33/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/food-and-drink_33/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/christian-fiction_34/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/christian-fiction_34/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/business_35/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/business_35/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/biography_36/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/biography_36/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/thriller_37/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/thriller_37/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/contemporary_38/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/contemporary_38/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/spirituality_39/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/spirituality_39/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/academic_40/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/academic_40/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/self-help_41/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/self-help_41/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/historical_42/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/historical_42/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/christian_43/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/christian_43/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/suspense_44/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/suspense_44/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/short-stories_45/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/short-stories_45/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/novels_46/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/novels_46/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/health_47/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/health_47/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/politics_48/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/politics_48/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/cultural_49/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/cultural_49/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/erotica_50/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/erotica_50/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/crime_51/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/crime_51/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/a-light-in-the-attic_1000/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/a-light-in-the-attic_1000/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/a-light-in-the-attic_1000/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/a-light-in-the-attic_1000/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/tipping-the-velvet_999/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/tipping-the-velvet_999/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/tipping-the-velvet_999/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/tipping-the-velvet_999/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/soumission_998/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/soumission_998/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/soumission_998/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/soumission_998/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sharp-objects_997/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sharp-objects_997/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sharp-objects_997/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sharp-objects_997/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sapiens-a-brief-history-of-humankind_996/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sapiens-a-brief-history-of-humankind_996/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sapiens-a-brief-history-of-humankind_996/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sapiens-a-brief-history-of-humankind_996/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-requiem-red_995/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-requiem-red_995/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-requiem-red_995/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-requiem-red_995/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-dirty-little-secrets-of-getting-your-dream-job_994/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-dirty-little-secrets-of-getting-your-dream-job_994/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-dirty-little-secrets-of-getting-your-dream-job_994/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-dirty-little-secrets-of-getting-your-dream-job_994/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-coming-woman-a-novel-based-on-the-life-of-the-infamous-feminist-victoria-woodhull_993/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-coming-woman-a-novel-based-on-the-life-of-the-infamous-feminist-victoria-woodhull_993/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-coming-woman-a-novel-based-on-the-life-of-the-infamous-feminist-victoria-woodhull_993/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-coming-woman-a-novel-based-on-the-life-of-the-infamous-feminist-victoria-woodhull_993/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-boys-in-the-boat-nine-americans-and-their-epic-quest-for-gold-at-the-1936-berlin-olympics_992/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-boys-in-the-boat-nine-americans-and-their-epic-quest-for-gold-at-the-1936-berlin-olympics_992/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-boys-in-the-boat-nine-americans-and-their-epic-quest-for-gold-at-the-1936-berlin-olympics_992/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-boys-in-the-boat-nine-americans-and-their-epic-quest-for-gold-at-the-1936-berlin-olympics_992/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-black-maria_991/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-black-maria_991/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-black-maria_991/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-black-maria_991/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/starving-hearts-triangular-trade-trilogy-1_990/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/starving-hearts-triangular-trade-trilogy-1_990/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/starving-hearts-triangular-trade-trilogy-1_990/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/starving-hearts-triangular-trade-trilogy-1_990/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/shakespeares-sonnets_989/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/shakespeares-sonnets_989/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/shakespeares-sonnets_989/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/shakespeares-sonnets_989/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/set-me-free_988/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/set-me-free_988/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/set-me-free_988/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/set-me-free_988/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/scott-pilgrims-precious-little-life-scott-pilgrim-1_987/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/scott-pilgrims-precious-little-life-scott-pilgrim-1_987/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/scott-pilgrims-precious-little-life-scott-pilgrim-1_987/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/scott-pilgrims-precious-little-life-scott-pilgrim-1_987/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/rip-it-up-and-start-again_986/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/rip-it-up-and-start-again_986/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/rip-it-up-and-start-again_986/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/rip-it-up-and-start-again_986/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/our-band-could-be-your-life-scenes-from-the-american-indie-underground-1981-1991_985/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/our-band-could-be-your-life-scenes-from-the-american-indie-underground-1981-1991_985/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/our-band-could-be-your-life-scenes-from-the-american-indie-underground-1981-1991_985/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/our-band-could-be-your-life-scenes-from-the-american-indie-underground-1981-1991_985/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/olio_984/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/olio_984/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/olio_984/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/olio_984/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/mesaerion-the-best-science-fiction-stories-1800-1849_983/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/mesaerion-the-best-science-fiction-stories-1800-1849_983/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/mesaerion-the-best-science-fiction-stories-1800-1849_983/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/mesaerion-the-best-science-fiction-stories-1800-1849_983/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/libertarianism-for-beginners_982/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/libertarianism-for-beginners_982/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/libertarianism-for-beginners_982/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/libertarianism-for-beginners_982/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/its-only-the-himalayas_981/index.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/its-only-the-himalayas_981/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/its-only-the-himalayas_981/index.html
+ 0   IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/its-only-the-himalayas_981/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/page-2.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/page-2.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/page-2.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/its-only-the-himalayas_981/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/libertarianism-for-beginners_982/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/mesaerion-the-best-science-fiction-stories-1800-1849_983/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/olio_984/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/our-band-could-be-your-life-scenes-from-the-american-indie-underground-1981-1991_985/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/rip-it-up-and-start-again_986/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/scott-pilgrims-precious-little-life-scott-pilgrim-1_987/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/set-me-free_988/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/shakespeares-sonnets_989/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/starving-hearts-triangular-trade-trilogy-1_990/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-black-maria_991/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-boys-in-the-boat-nine-americans-and-their-epic-quest-for-gold-at-the-1936-berlin-olympics_992/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-coming-woman-a-novel-based-on-the-life-of-the-infamous-feminist-victoria-woodhull_993/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-dirty-little-secrets-of-getting-your-dream-job_994/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/the-requiem-red_995/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sapiens-a-brief-history-of-humankind_996/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/sharp-objects_997/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/soumission_998/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/tipping-the-velvet_999/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/a-light-in-the-attic_1000/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/crime_51/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/erotica_50/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/cultural_49/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/politics_48/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/health_47/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/novels_46/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/short-stories_45/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/suspense_44/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/christian_43/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/historical_42/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/self-help_41/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/academic_40/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/spirituality_39/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/contemporary_38/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/thriller_37/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/biography_36/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/business_35/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/christian-fiction_34/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/food-and-drink_33/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/history_32/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/horror_31/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/humor_30/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/adult-fiction_29/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/parenting_28/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/autobiography_27/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/psychology_26/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/art_25/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/paranormal_24/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/poetry_23/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/science_22/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/young-adult_21/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/new-adult_20/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/fantasy_19/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/add-a-comment_18/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/sports-and-games_17/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/science-fiction_16/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/default_15/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/music_14/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/nonfiction_13/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/religion_12/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/childrens_11/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/fiction_10/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/womens-fiction_9/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/romance_8/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/philosophy_7/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/classics_6/index.html
+ 1 
