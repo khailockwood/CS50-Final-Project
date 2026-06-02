@@ -1,4 +1,6 @@
-# Makefile for the TSE 'crawler'
+# Khai Lockwood
+# 5/31/2026
+# Makefile for the CS50 TSE 'crawler'
 #
 # Builds the crawler executable, linking against the shared common.a
 # library and the libcs50.a library.
