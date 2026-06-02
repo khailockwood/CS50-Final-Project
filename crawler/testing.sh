@@ -1,12 +1,13 @@
+# Khai Lockwood
+# 5/31/2026
 #!/bin/bash
-#
-# testing.sh - test script for the TSE 'crawler'
+# testing.sh - test script for the CS50 TSE 'crawler'
 #
 # Usage: bash -v testing.sh
 #   (run via 'make test', which saves output with: make test &> testing.out)
 #
 # This script tests the crawler in three phases:
-#   1. erroneous command-line arguments (each should fail with non-zero exit)
+#   1. command-line arguments with errors (each should fail with non-zero exit)
 #   2. a valgrind run over a small crawl, to check for memory errors/leaks
 #   3. correct crawls over the test sites at increasing depths
 #
