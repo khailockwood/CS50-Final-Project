@@ -10,7 +10,7 @@ C = ../common
 OBJS = crawler.o
 LLIBS = $C/common.a $L/libcs50.a
 
-CFLAGS = -Wall -pedantic -std=c11 -add ggdb -I$L -I$C $(FLAGS)
+CFLAGS = -Wall -pedantic -std=c11 -ggdb -I$L -I$C $(FLAGS)
 CC = gcc
 MAKE = make
 
