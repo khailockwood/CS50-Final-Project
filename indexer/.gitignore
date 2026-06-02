@@ -1,0 +1,14 @@
+# compiled programs
+indexer
+indextest
+
+# object and debug files
+*.o
+*.dSYM
+core
+
+# test output
+tiny.index.test*
+
+# editor backups
+*~

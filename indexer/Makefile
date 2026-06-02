@@ -13,9 +13,12 @@ LIBS = $C/common.a $L/libcs50.a
 CFLAGS = -Wall -pedantic -std=c11 -ggdb -I$L -I$C
 CC = gcc
 
-.PHONY: all clean
+.PHONY: all clean test
 
 all: indexer indextest
+
+test: indexer indextest
+	bash -v testing.sh
 
 indexer: indexer.o $(LIBS)
 	$(CC) $(CFLAGS) $^ -o $@
@@ -31,3 +34,4 @@ clean:
 	rm -rf *.dSYM
 	rm -f indexer indextest
 	rm -f core
+	rm -f tiny.index.test*
