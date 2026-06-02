@@ -365,4 +365,32 @@ mkdir -p ../data/toscrape-1
  1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/romance_8/index.html
  1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/philosophy_7/index.html
  1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/classics_6/index.html
- 1 
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/sequential-art_5/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/historical-fiction_4/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/mystery_3/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books/travel_2/index.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/toscrape/catalogue/category/books_1/index.html
+
+# wikipedia site at depth 1
+mkdir -p ../data/wikipedia-1
+./crawler $WIKIPEDIA ../data/wikipedia-1 1
+ 0   Fetched: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/index.html
+ 0  Scanning: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Computer_science.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Computer_science.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/C_(programming_language).html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/C_(programming_language).html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Unix.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Unix.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Dartmouth_College.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Dartmouth_College.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Hash_table.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Hash_table.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Linked_list.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Linked_list.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Linked_list.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Hash_table.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Dartmouth_College.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Unix.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/C_(programming_language).html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/wikipedia/Computer_science.html

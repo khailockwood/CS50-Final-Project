@@ -1,4 +1,6 @@
-# Makefile for the TSE 'crawler'
+# Khai Lockwood
+# 5/31/2026
+# Makefile for the CS50 TSE 'crawler'
 #
 # Builds the crawler executable, linking against the shared common.a
 # library and the libcs50.a library.
@@ -10,7 +12,7 @@ C = ../common
 OBJS = crawler.o
 LLIBS = $C/common.a $L/libcs50.a
 
-CFLAGS = -Wall -pedantic -std=c11 -add ggdb -I$L -I$C $(FLAGS)
+CFLAGS = -Wall -pedantic -std=c11 -ggdb -I$L -I$C $(FLAGS)
 CC = gcc
 MAKE = make
 

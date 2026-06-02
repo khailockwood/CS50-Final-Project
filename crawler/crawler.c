@@ -1,5 +1,7 @@
 /*
- * crawler.c - CS50 Tiny Search Engine 'crawler'
+ * Khai Lockwood
+ * 5/31/2026
+ * CS50 Tiny Search Engine 'crawler'
  *
  * The crawler starts from a given "seed" URL, fetches that page, scans it
  * for links to other pages on the same site (internal URLs), and repeats
@@ -54,12 +56,12 @@ main(const int argc, char* argv[])
 /**************** parseArgs ****************/
 /*
  * Given the command-line arguments, extract them into the caller's
- * variables, validating each one.  On any error, print a message to
- * stderr and exit non-zero.  Returns (via parameters) only on success.
+ * variables, validating each one. On any error, print a message to
+ * stderr and exit non-zero. Returns (via parameters) only on success.
  *
- *   seedURL       - normalized and confirmed to be an internal URL
+ *   seedURL - normalized and confirmed to be an internal URL
  *   pageDirectory - confirmed initializable via pagedir_init()
- *   maxDepth      - confirmed to be an integer in [0, maxDepthLimit]
+ *   maxDepth - confirmed to be an integer in [0, maxDepthLimit]
  */
 static void
 parseArgs(const int argc, char* argv[],
@@ -71,7 +73,7 @@ parseArgs(const int argc, char* argv[],
     exit(1);
   }
 
-  // seedURL: normalize it, then require that it is internal to the site
+  // seedURL: normalize it, then require that it is internal
   char* normalized = normalizeURL(argv[1]);
   if (normalized == NULL) {
     fprintf(stderr, "error: cannot normalize seedURL '%s'\n", argv[1]);
@@ -117,6 +119,7 @@ crawl(char* seedURL, char* pageDirectory, const int maxDepth)
 {
   // the set of URLs we have already seen (so we never re-add them)
   hashtable_t* pagesSeen = hashtable_new(hashSlots);
+  // mem_assert is a helper function in libcs50, just returns a pointer, prints an error message if pointer is NULL
   mem_assert(pagesSeen, "crawl: could not create hashtable");
   hashtable_insert(pagesSeen, seedURL, ""); // mark the seed as seen
 
