@@ -1,4 +1,3 @@
-File Edit Options Buffers Tools Help
 /*
  * Lyndon Huang, Khai Lockwood, Gift Christian
  * 6/1/26
