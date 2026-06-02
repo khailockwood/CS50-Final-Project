@@ -110,9 +110,8 @@ int main(const int argc, char* argv[]) {
 
   // main query loop: prompt, then read one line at a time until EOF
   char* line;
+  prompt();     // print the prompt if we're interactive
   while ((line = file_readLine(stdin)) != NULL) {
-    prompt();     // print the prompt if we're interactive
-
     // reject the line right away if it has any character that isn't allowed
     if (!cleanChars(line)) {
       free(line);     // cleanChars already printed the error, free the line
@@ -153,6 +152,7 @@ int main(const int argc, char* argv[]) {
     counters_delete(sum);                 // done with this query's scores
     free(words);                          // free the word array
     free(line);                           // free the line itself
+    prompt();     // print the prompt for the next query
   }
 
   if (isatty(fileno(stdin))) {    // if we were interactive
