@@ -1,0 +1,6 @@
+*.o
+querier
+*~
+core
+.DS_Store
+junk/

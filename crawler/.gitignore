@@ -1,0 +1,9 @@
+# crawler/.gitignore
+#
+# Build product for this directory.
+# Note: *.o, *.dSYM, and the ../data output directory are already ignored
+# by the top-level .gitignore. testing.out is a deliverable and is NOT
+# ignored, so that it gets committed.
+
+# the compiled crawler executable
+crawler
