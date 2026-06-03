@@ -21,35 +21,25 @@ When loading an index from a file, we count the number of lines in the file (one
 
 ## Control flow
 
-The Indexer is implemented in one file `indexer.c`, with four functions.
+The Indexer is implemented in one file `indexer.c`, with three functions.
 
 ### main
 
-The `main` function simply calls `parseArgs` and `indexBuild`, then exits zero.
-
-### parseArgs
-
-Given arguments from the command line, extract them into the function parameters; return only if successful.
-
-* for `pageDirectory`, verify it is a directory produced by the Crawler by calling `pagedir_validate()`
-* for `indexFilename`, verify it can be opened for writing
-* if any trouble is found, print an error to stderr and exit non-zero.
+The `main` function validates the arguments, creates the index, calls indexBuild, saves with index_save, and frees with index_delete, then exits. 
 
 ### indexBuild
+Given an index and pageDirectory, loop docIDs from 1, load each page,
+pass it to indexPage, delete it, stop when load returns NULL 
 
-Do the real work of building the in-memory index from documents in `pageDirectory`, then write that index to `indexFilename`.
 Pseudocode:
 
-	create a new 'index' object
-	loop over document ID numbers, counting from 1
-		load a webpage from the file 'pageDirectory/id'
-		if successful,
-			pass the webpage and docID to indexPage
-			delete the webpage
-		else
-			break out of the loop
-	write the index to indexFilename
-	delete the index
+loop over document ID numbers, counting from 1
+    load a webpage from the file 'pageDirectory/id'
+    if successful,
+        pass the webpage and docID to indexPage
+        delete the webpage
+    else
+        break out of the loop
 
 ### indexPage
 
@@ -137,9 +127,7 @@ Detailed descriptions of each function's interface is provided as a paragraph co
 
 ```c
 int main(const int argc, char* argv[]);
-static void parseArgs(const int argc, char* argv[],
-                      char** pageDirectory, char** indexFilename);
-static void indexBuild(const char* pageDirectory, const char* indexFilename);
+static void indexBuild(index_t* index, const char* pageDirectory);
 static void indexPage(index_t* index, webpage_t* page, const int docID);
 ```
 
@@ -190,19 +178,24 @@ Here is an implementation-specific testing plan.
 
 ### Unit testing
 
-The `indextest` program serves as a unit test for the `index` module: it reads an index file into the internal `index_t` data structure using `index_load`, then writes the index out to a new file using `index_save`.
-The other modules (pagedir and word) are tiny; they could be tested using small C drivers, but it is likely sufficient to observe their behavior during the system test.
+The `indextest` program serves as a unit test for the `index` module: it reads an index file into the internal `index_t` data structure using `index_load`, then writes the index back out to a new file using `index_save`.
+Comparing the two files confirms the load/save round-trip preserves the index; because the index file format permits the lines (and the *(docID, count)* pairs within a line) to appear in any order, we sort both files before comparing them with `diff`.
+The other modules, `pagedir` and `word`, are small enough that their behavior is exercised and observed during the integration test rather than through separate unit drivers.
 
 ### Regression testing
 
-The indexer's output file can be compared against a known-good index file using the provided `indexcmp` tool, which handles the fact that lines and *(docID, count)* pairs may appear in any order.
-For routine regression tests, we run the indexer on the `letters` pageDirectory at moderate depth and compare the resulting index file against a saved reference.
+The shared CS50 corpus and the `indexcmp` tool were not available on our development server, so rather than comparing against a saved reference index we validate the indexer's output against the known content of a small pageDirectory.
+We use the `tiny` pageDirectory (three documents), whose word counts can be verified by inspection, and re-run `testing.sh` after any change to confirm the output is unchanged.
 
 ### Integration/system testing
 
-We write a script `testing.sh` that invokes the indexer (and indextest) several times, with a variety of command-line arguments.
-First, a sequence of invocations with erroneous arguments, testing each of the possible mistakes that can be made.
-Second, a run with valgrind over both `indexer` and `indextest` on a moderate-sized test case (such as `toscrape` at depth 1), to verify no memory errors or leaks.
-Third, runs of `indexer` over several CS50 pageDirectories (such as `letters` at depths 0, 1, 2; `toscrape` at depth 1; `wikipedia` at depth 1), followed by `indextest` on each resulting index file, and finally `indexcmp` to verify that the round-tripped index is equivalent to the original.
-Run that script with `bash -v testing.sh` so the output of indexer and indextest is intermixed with the commands used to invoke them.
-Verify correct behavior by studying the output, and by sampling the entries in the resulting index files.
+We write a script `testing.sh` that invokes the indexer and indextest several times.
+
+First, a sequence of invocations with erroneous arguments — no arguments, one argument, too many arguments, a non-existent pageDirectory, a directory that is not a Crawler-produced directory, and an unwritable indexFilename — each followed by printing the exit status, to confirm the program prints an error to stderr and exits non-zero in every case.
+
+Second, a valid run of the indexer over the `tiny` pageDirectory, followed by `indextest` on the resulting index file and a sorted `diff` between the original and round-tripped index files, to confirm the two are equivalent.
+
+Third, runs of both `indexer` and `indextest` under valgrind, to verify there are no memory errors or leaks.
+
+We run the script with `bash -v testing.sh` so each command is echoed alongside its output, and we save that output to `testing.out`.
+We verify correct behavior by studying that output and by sampling entries in the resulting index file.
