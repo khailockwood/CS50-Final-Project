@@ -54,3 +54,4 @@ clean:
 	rm -f core
 	rm -f $(PROG) *.o *~
 	rm -f testing.out
+	rm -rf pages-letters letters.index

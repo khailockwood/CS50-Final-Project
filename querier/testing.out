@@ -1,0 +1,266 @@
+gcc -Wall -pedantic -std=c11 -ggdb -I../common -I../libcs50    -c -o querier.o querier.c
+gcc -Wall -pedantic -std=c11 -ggdb -I../common -I../libcs50  querier.o ../common/common.a ../libcs50/libcs50.a -o querier
+bash -v testing.sh
+#!/bin/bash
+
+# Gift Christian, CS50 TSE Querier
+# regression tests for the querier
+#
+# Unlike a static hand-built index, this script builds its test data live:
+# it runs the crawler on the CS50 'letters' playground, runs the indexer on
+# that crawl, and then runs the querier against the *real* crawler/indexer
+# output. That way the test exercises the whole TSE pipeline end to end.
+
+set -u       # blow up if i ever use a variable i forgot to set
+
+CRAWLER=../crawler/crawler   # the crawler built in the crawler lab
+INDEXER=../indexer/indexer   # the indexer built in the indexer lab
+SEED=http://cs50tse.cs.dartmouth.edu/tse/letters/index.html  # small, stable site
+DEPTH=5                      # depth 5 saturates the letters graph (9 pages)
+
+DIR=pages-letters            # the page directory the crawler will fill
+IDX=letters.index            # the index file the indexer will produce
+BAD=/no/such/path            # a path that doesn't exist, for the error tests
+
+# 0. build the test data from the real crawler and indexer
+# crawl the letters site, then index what we crawled. if either step fails
+# (e.g. no network) the querier tests below still run their argument checks.
+
+rm -rf "$DIR" "$IDX"
+mkdir -p "$DIR"
+$CRAWLER "$SEED" "$DIR" "$DEPTH"
+ 0   Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 0  Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 0     Found: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 0     Added: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 1    Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 1   Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 1      Found: https://en.wikipedia.org/wiki/Algorithm
+ 1   IgnExtrn: https://en.wikipedia.org/wiki/Algorithm
+ 1      Found: http://cs50tse.cs.dartmouth.edu/tse/letters/B.html
+ 1      Added: http://cs50tse.cs.dartmouth.edu/tse/letters/B.html
+ 1      Found: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 1    IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 2     Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/B.html
+ 2    Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/B.html
+ 2       Found: https://en.wikipedia.org/wiki/Breadth-first_search
+ 2    IgnExtrn: https://en.wikipedia.org/wiki/Breadth-first_search
+ 2       Found: http://cs50tse.cs.dartmouth.edu/tse/letters/C.html
+ 2       Added: http://cs50tse.cs.dartmouth.edu/tse/letters/C.html
+ 2       Found: http://cs50tse.cs.dartmouth.edu/tse/letters/D.html
+ 2       Added: http://cs50tse.cs.dartmouth.edu/tse/letters/D.html
+ 2       Found: http://cs50tse.cs.dartmouth.edu/tse/letters/E.html
+ 2       Added: http://cs50tse.cs.dartmouth.edu/tse/letters/E.html
+ 2       Found: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 2     IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 3      Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/E.html
+ 3     Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/E.html
+ 3        Found: https://en.wikipedia.org/wiki/ENIAC
+ 3     IgnExtrn: https://en.wikipedia.org/wiki/ENIAC
+ 3        Found: http://cs50tse.cs.dartmouth.edu/tse/letters/F.html
+ 3        Added: http://cs50tse.cs.dartmouth.edu/tse/letters/F.html
+ 3        Found: http://cs50tse.cs.dartmouth.edu/tse/letters/G.html
+ 3        Added: http://cs50tse.cs.dartmouth.edu/tse/letters/G.html
+ 3        Found: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 3      IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+ 3        Found: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 3      IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 4       Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/G.html
+ 4      Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/G.html
+ 4         Found: https://en.wikipedia.org/wiki/Graph_traversal
+ 4      IgnExtrn: https://en.wikipedia.org/wiki/Graph_traversal
+ 4         Found: http://cs50tse.cs.dartmouth.edu/tse/letters/H.html
+ 4         Added: http://cs50tse.cs.dartmouth.edu/tse/letters/H.html
+ 4         Found: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 4       IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 5        Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/H.html
+ 4       Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/F.html
+ 4      Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/F.html
+ 4         Found: https://en.wikipedia.org/wiki/Fast_Fourier_transform
+ 4      IgnExtrn: https://en.wikipedia.org/wiki/Fast_Fourier_transform
+ 4         Found: http://cs50tse.cs.dartmouth.edu/tse/letters/H.html
+ 4       IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/H.html
+ 4         Found: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 4       IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 3      Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/D.html
+ 3     Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/D.html
+ 3        Found: https://en.wikipedia.org/wiki/Depth-first_search
+ 3     IgnExtrn: https://en.wikipedia.org/wiki/Depth-first_search
+ 3        Found: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 3      IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 3      Fetched: http://cs50tse.cs.dartmouth.edu/tse/letters/C.html
+ 3     Scanning: http://cs50tse.cs.dartmouth.edu/tse/letters/C.html
+ 3        Found: https://en.wikipedia.org/wiki/Computational_biology
+ 3     IgnExtrn: https://en.wikipedia.org/wiki/Computational_biology
+ 3        Found: http://cs50tse.cs.dartmouth.edu/tse/letters/D.html
+ 3      IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/D.html
+ 3        Found: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+ 3      IgnDupl: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+$INDEXER "$DIR" "$IDX"
+
+# 1. command-line argument checks
+
+# no arguments at all, so it should print usage
+./querier
+usage: ./querier pageDirectory indexFilename
+
+# only one argument, still wrong, should print usage
+./querier $DIR
+usage: ./querier pageDirectory indexFilename
+
+# three arguments, one too many, should print usage
+./querier $DIR $IDX extra
+usage: ./querier pageDirectory indexFilename
+
+# page directory that doesn't exist, should say it's not a crawler dir
+./querier $BAD $IDX
+Error: '/no/such/path' is not a crawler directory
+
+# page directory that exists but has no .crawler sentinel, same complaint
+./querier . $IDX
+Error: '.' is not a crawler directory
+
+# index file that doesn't exist, should say it can't read the index
+./querier $DIR $BAD
+Error: cannot read index from '/no/such/path'
+
+# 2. ranked queries against the real crawled-and-indexed letters site
+# every page links 'home', so a 'home' query matches all 9 documents.
+# the index page is the only one carrying 'playground' and 'tse'.
+# and/or operators let me intersect and union the matching sets.
+
+./querier $DIR $IDX <<EOF
+home
+tse
+playground
+breadth or depth
+breadth and depth
+fast and fourier and transform
+computational and biology
+home and tse
+playground or eniac
+EOF
+Query: home
+Matches 9 documents (ranked):
+score   2 doc    1: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+score   1 doc    2: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+score   1 doc    3: http://cs50tse.cs.dartmouth.edu/tse/letters/B.html
+score   1 doc    4: http://cs50tse.cs.dartmouth.edu/tse/letters/E.html
+score   1 doc    5: http://cs50tse.cs.dartmouth.edu/tse/letters/G.html
+score   1 doc    6: http://cs50tse.cs.dartmouth.edu/tse/letters/H.html
+score   1 doc    7: http://cs50tse.cs.dartmouth.edu/tse/letters/F.html
+score   1 doc    8: http://cs50tse.cs.dartmouth.edu/tse/letters/D.html
+score   1 doc    9: http://cs50tse.cs.dartmouth.edu/tse/letters/C.html
+Query: tse
+Matches 1 documents (ranked):
+score   1 doc    1: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+Query: playground
+Matches 1 documents (ranked):
+score   1 doc    1: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+Query: breadth or depth
+Matches 2 documents (ranked):
+score   1 doc    3: http://cs50tse.cs.dartmouth.edu/tse/letters/B.html
+score   1 doc    8: http://cs50tse.cs.dartmouth.edu/tse/letters/D.html
+Query: breadth and depth
+No documents match.
+Query: fast and fourier and transform
+Matches 1 documents (ranked):
+score   1 doc    7: http://cs50tse.cs.dartmouth.edu/tse/letters/F.html
+Query: computational and biology
+Matches 1 documents (ranked):
+score   1 doc    9: http://cs50tse.cs.dartmouth.edu/tse/letters/C.html
+Query: home and tse
+Matches 1 documents (ranked):
+score   1 doc    1: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+Query: playground or eniac
+Matches 2 documents (ranked):
+score   1 doc    1: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+score   1 doc    4: http://cs50tse.cs.dartmouth.edu/tse/letters/E.html
+
+# 3. the syntax error messages from the spec
+# operator-first, operator-last, two-operators-adjacent, and the
+# bad-character cases are all here
+
+./querier $DIR $IDX <<EOF
+and
+or
+and earth
+or earth
+planet earth or
+planet earth and
+planet earth and or science
+planet earth and and science
+planet earth or and science
+Warning!
+(The Lunar Chronicles #4.5)
+git-flow
+EOF
+Query: and
+Error: 'and' cannot be first
+Query: or
+Error: 'or' cannot be first
+Query: and earth
+Error: 'and' cannot be first
+Query: or earth
+Error: 'or' cannot be first
+Query: planet earth or
+Error: 'or' cannot be last
+Query: planet earth and
+Error: 'and' cannot be last
+Query: planet earth and or science
+Error: 'and' and 'or' cannot be adjacent
+Query: planet earth and and science
+Error: 'and' and 'and' cannot be adjacent
+Query: planet earth or and science
+Error: 'or' and 'and' cannot be adjacent
+Error: bad character '!' in query.
+Error: bad character '(' in query.
+Error: bad character '-' in query.
+
+# 4. whitespace, case folding, short words, and empty input
+./querier $DIR $IDX <<EOF
+   BREADTH    first
+   home   AND   tse
+a home tse
+EOF
+Query: breadth first
+Matches 1 documents (ranked):
+score   1 doc    3: http://cs50tse.cs.dartmouth.edu/tse/letters/B.html
+Query: home and tse
+Matches 1 documents (ranked):
+score   1 doc    1: http://cs50tse.cs.dartmouth.edu/tse/letters/index.html
+Query: a home tse
+No documents match.
+
+# empty input file, the querier should just exit cleanly with no output
+./querier $DIR $IDX </dev/null
+
+# 5. one big scripted batch of queries in a single run
+./querier $DIR $IDX <<EOF
+algorithm
+graph
+traversal
+algorithm graph
+algorithm or traversal
+algorithm and traversal
+notInTheIndex
+EOF
+Query: algorithm
+Matches 1 documents (ranked):
+score   1 doc    2: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+Query: graph
+Matches 1 documents (ranked):
+score   1 doc    5: http://cs50tse.cs.dartmouth.edu/tse/letters/G.html
+Query: traversal
+Matches 1 documents (ranked):
+score   1 doc    5: http://cs50tse.cs.dartmouth.edu/tse/letters/G.html
+Query: algorithm graph
+No documents match.
+Query: algorithm or traversal
+Matches 2 documents (ranked):
+score   1 doc    2: http://cs50tse.cs.dartmouth.edu/tse/letters/A.html
+score   1 doc    5: http://cs50tse.cs.dartmouth.edu/tse/letters/G.html
+Query: algorithm and traversal
+No documents match.
+Query: notintheindex
+No documents match.
