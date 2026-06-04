@@ -94,7 +94,6 @@ static void indexBuild(index_t* index, const char* pageDirectory)
   int docID = 1;
   webpage_t* page;
   while ((page = pagedir_load(pageDirectory, docID)) != NULL) {
-    //index page//   indexPage(index, page, docID)
     indexPage(index, page, docID);
     webpage_delete(page);
     docID += 1;
